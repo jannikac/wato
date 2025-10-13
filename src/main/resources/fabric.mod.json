@@ -5,7 +5,7 @@
 	"name": "What are the odds?",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
-		"Me!"
+		"jannikac"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
@@ -31,7 +31,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.15.3",
-		"minecraft": "~1.21.1",
+		"minecraft": "~1.21.10",
 		"java": ">=17",
 		"fabric-api": "*"
 	},

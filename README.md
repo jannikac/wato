@@ -43,3 +43,9 @@ the Issues section.
 
 `.jar` files are automatically built through the GitHub action. You can build the `.jar` by cloning the repo and
 running the build gradle task.
+
+#### Building manually
+Execute the build task:
+```bash
+./gradlew build
+```
