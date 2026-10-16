@@ -304,7 +304,7 @@ public class WhatAreTheOdds implements ModInitializer {
                         .then(CommandManager.literal("respond").then(CommandManager.argument("number", StringArgumentType.word())
                                         .executes(context -> {
                                             // search for the challenge
-                                            Optional<Challenge> result = challenges.stream().filter(challenge -> challenge.targetPlayer == context.getSource().getPlayer()).findFirst();
+                                            Optional<Challenge> result = challenges.stream().filter(challenge -> challenge.targetPlayer == context.getSource().getPlayer() && !challenge.challengeActive).findFirst();
                                             if (result.isEmpty()) {
                                                 context.getSource().sendError(Text.literal("Du hast keine aktiven Odds"));
                                                 return 0;
