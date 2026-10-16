@@ -55,3 +55,24 @@ Execute the build task:
 ```bash
 ./gradlew build
 ```
+
+### Releasing
+
+Releases are cut with `release.sh`, which keeps the version in `gradle.properties`, the git tag, and the
+published jar/Modrinth listing all in sync in one step. This is the only supported way to cut a release —
+tagging manually will desync `mod_version` from the tag (as happened with `v1.1.0`/`v1.1.1`).
+
+```bash
+./release.sh v1.1.3
+```
+
+This:
+1. Refuses to run if the working tree isn't clean, or if the tag already exists.
+2. Builds the full version string from the given tag and the current `minecraft_version`
+   (e.g. `v1.1.3` + `1.21.10` → `v1.1.3+mc1.21.10`).
+3. Updates `mod_version` in `gradle.properties`, commits that change, tags the commit, and pushes both.
+
+Pushing the tag triggers `build-and-release.yml`, which builds the jar, attaches it to a GitHub release, and
+publishes it to Modrinth.
+
+The version must be in `vX.X.X` form — bare `X.X.X` (no leading `v`) is rejected.
