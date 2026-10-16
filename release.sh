@@ -41,8 +41,13 @@ fi
 
 sed -i "s/^mod_version=.*/mod_version=${FULL_VERSION}/" gradle.properties
 
-git add gradle.properties
-git commit -m "Release ${FULL_VERSION}"
+if [ -n "$(git status --porcelain -- gradle.properties)" ]; then
+    git add gradle.properties
+    git commit -m "Release ${FULL_VERSION}"
+else
+    echo "gradle.properties already has mod_version=${FULL_VERSION}; nothing to commit."
+fi
+
 git tag "$FULL_VERSION"
 git push
 git push origin "$FULL_VERSION"
