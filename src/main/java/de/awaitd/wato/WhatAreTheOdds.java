@@ -39,8 +39,7 @@ public class WhatAreTheOdds implements ModInitializer {
     // That way, it's clear which mod wrote info, warnings, and errors.
     public static final Logger LOGGER = LoggerFactory.getLogger("WhatAreTheOdds");
     // Map to store ongoing challenges
-    private static final ArrayList<Challenge> challenges = new ArrayList<Challenge>() {
-    };
+    private static final ArrayList<Challenge> challenges = new ArrayList<>();
 
     // Class to represent a challenge
     private static void startChallenge(ServerPlayerEntity sourcePlayer, ServerPlayerEntity targetPlayer, String challengeText) {
@@ -53,17 +52,17 @@ public class WhatAreTheOdds implements ModInitializer {
         challenges.add(challenge);
 
         // Send challenge message to players
-        sourcePlayer.sendMessage(Title());
-        sourcePlayer.sendMessage(RegularMessage(String.format("Du hast %s zu einer Odds herausgefordert. Dieser kann nun mit /odds respond <seine Odds> antworten", targetPlayer.getName().getString())));
-        sourcePlayer.sendMessage(RegularMessage(String.format("\n%s", challengeText)));
+        sourcePlayer.sendMessage(title());
+        sourcePlayer.sendMessage(regularMessage(String.format("Du hast %s zu einer Odds herausgefordert. Dieser kann nun mit /odds respond <seine Odds> antworten", targetPlayer.getName().getString())));
+        sourcePlayer.sendMessage(regularMessage(String.format("\n%s", challengeText)));
 
-        targetPlayer.sendMessage(Title());
-        targetPlayer.sendMessage(RegularMessage(String.format("%s hat dich zu einer Odds herausgefordert.", sourcePlayer.getName().getString())));
-        targetPlayer.sendMessage(RespondPrompt());
-        targetPlayer.sendMessage(RegularMessage(String.format("\n%s", challengeText)));
+        targetPlayer.sendMessage(title());
+        targetPlayer.sendMessage(regularMessage(String.format("%s hat dich zu einer Odds herausgefordert.", sourcePlayer.getName().getString())));
+        targetPlayer.sendMessage(respondPrompt());
+        targetPlayer.sendMessage(regularMessage(String.format("\n%s", challengeText)));
     }
 
-    private static Text RespondPrompt() {
+    private static Text respondPrompt() {
         Text link = Text.literal("Hier").styled(style -> style
                 .withColor(Formatting.GREEN)
                 .withUnderline(true)
@@ -72,8 +71,8 @@ public class WhatAreTheOdds implements ModInitializer {
         return Text.literal("").append(link).append(rest);
     }
 
-    private static Text GuessPrompt(int limit) {
-        Text intro = RegularMessage(String.format("\nSchreibe eine Zahl zwischen 1 und %s oder klicke ", limit));
+    private static Text guessPrompt(int limit) {
+        Text intro = regularMessage(String.format("\nSchreibe eine Zahl zwischen 1 und %s oder klicke ", limit));
         Text link = Text.literal("hier").styled(style -> style
                 .withColor(Formatting.GREEN)
                 .withUnderline(true)
@@ -83,10 +82,10 @@ public class WhatAreTheOdds implements ModInitializer {
 
     private static void handleGuess(ServerPlayerEntity sender, Challenge challenge, int parsedInt) {
         if (parsedInt < 1 || parsedInt > challenge.limit) {
-            sender.sendMessage(RegularMessage(String.format("Du musst eine Zahl zwischen 1 und %s", challenge.limit)));
+            sender.sendMessage(regularMessage(String.format("Du musst eine Zahl zwischen 1 und %s", challenge.limit)));
             return;
         }
-        sender.sendMessage(RegularMessage(String.format("Deine Odds: %s", parsedInt)));
+        sender.sendMessage(regularMessage(String.format("Deine Odds: %s", parsedInt)));
 
         if (sender == challenge.targetPlayer) {
             challenge.targetPlayerGuess = OptionalInt.of(parsedInt);
@@ -110,11 +109,11 @@ public class WhatAreTheOdds implements ModInitializer {
         }
     }
 
-    private static Text Title() {
+    private static Text title() {
         return Text.literal("==== Was sind die Odds? ====").formatted(Formatting.AQUA);
     }
 
-    private static Text RegularMessage(String input) {
+    private static Text regularMessage(String input) {
         return Text.literal(input).formatted(Formatting.GRAY);
     }
 
@@ -131,21 +130,32 @@ public class WhatAreTheOdds implements ModInitializer {
         );
     }
 
+    private static DialogActionButtonData cancelButton() {
+        return new DialogActionButtonData(new DialogButtonData(Text.literal("Abbrechen"), 200), Optional.empty());
+    }
+
+    private static DialogCommonData commonData(String bodyText, List<DialogInput> inputs) {
+        return new DialogCommonData(
+                title(),
+                Optional.empty(),
+                true,
+                false,
+                AfterAction.CLOSE,
+                List.of(new PlainMessageDialogBody(regularMessage(bodyText), 200)),
+                inputs
+        );
+    }
+
+    private static DialogCommonData commonData(String bodyText) {
+        return commonData(bodyText, List.of());
+    }
+
     private static void showDialog(ServerPlayerEntity player, Dialog dialog) {
         player.openDialog(RegistryEntry.of(dialog));
     }
 
     private static void showNotice(ServerPlayerEntity player, String message) {
-        DialogCommonData common = new DialogCommonData(
-                Title(),
-                Optional.empty(),
-                true,
-                false,
-                AfterAction.CLOSE,
-                List.of(new PlainMessageDialogBody(RegularMessage(message), 200)),
-                List.of()
-        );
-        showDialog(player, new NoticeDialog(common, NoticeDialog.OK_BUTTON));
+        showDialog(player, new NoticeDialog(commonData(message), NoticeDialog.OK_BUTTON));
     }
 
     private static void showNewChallengeDialog(ServerPlayerEntity player, List<ServerPlayerEntity> onlinePlayers) {
@@ -162,18 +172,8 @@ public class WhatAreTheOdds implements ModInitializer {
                 ))
                 .toList();
 
-        DialogActionButtonData cancelButton = new DialogActionButtonData(new DialogButtonData(Text.literal("Abbrechen"), 200), Optional.empty());
-
-        DialogCommonData common = new DialogCommonData(
-                Title(),
-                Optional.empty(),
-                true,
-                false,
-                AfterAction.CLOSE,
-                List.of(new PlainMessageDialogBody(RegularMessage("Wähle den Spieler, den du herausfordern möchtest."), 200)),
-                List.of()
-        );
-        showDialog(player, new MultiActionDialog(common, targetButtons, Optional.of(cancelButton), 1));
+        DialogCommonData common = commonData("Wähle den Spieler, den du herausfordern möchtest.");
+        showDialog(player, new MultiActionDialog(common, targetButtons, Optional.of(cancelButton()), 1));
     }
 
     private static Dialog buildChallengeMessageDialog(ServerPlayerEntity target) {
@@ -183,51 +183,24 @@ public class WhatAreTheOdds implements ModInitializer {
         );
 
         DialogActionButtonData confirmButton = actionButton("Bestätigen", String.format("/odds challenge %s \"$(text)\"", target.getName().getString()));
-        DialogActionButtonData cancelButton = new DialogActionButtonData(new DialogButtonData(Text.literal("Abbrechen"), 200), Optional.empty());
-
-        DialogCommonData common = new DialogCommonData(
-                Title(),
-                Optional.empty(),
-                true,
-                false,
-                AfterAction.CLOSE,
-                List.of(new PlainMessageDialogBody(RegularMessage(String.format("Schreib deine Odds-Nachricht an %s.", target.getName().getString())), 200)),
-                inputs
-        );
-        return new MultiActionDialog(common, List.of(cancelButton, confirmButton), Optional.empty(), 2);
+        DialogCommonData common = commonData(String.format("Schreib deine Odds-Nachricht an %s.", target.getName().getString()), inputs);
+        return new MultiActionDialog(common, List.of(cancelButton(), confirmButton), Optional.empty(), 2);
     }
 
     private static void showAcceptDialog(ServerPlayerEntity player, Challenge challenge) {
         List<DialogInput> inputs = List.of(
                 new DialogInput("number", new TextInputControl(200, Text.literal("Odds (Obergrenze)"), true, "", 9, Optional.empty()))
         );
-        DialogCommonData common = new DialogCommonData(
-                Title(),
-                Optional.empty(),
-                true,
-                false,
-                AfterAction.CLOSE,
-                List.of(new PlainMessageDialogBody(RegularMessage(String.format("%s hat dich herausgefordert:\n%s", challenge.sourcePlayer.getName().getString(), challenge.challengeText)), 200)),
-                inputs
-        );
+        DialogCommonData common = commonData(String.format("%s hat dich herausgefordert:\n%s", challenge.sourcePlayer.getName().getString(), challenge.challengeText), inputs);
         DialogActionButtonData confirmButton = actionButton("Odds festlegen", "/odds respond $(number)");
-        DialogActionButtonData cancelButton = new DialogActionButtonData(new DialogButtonData(Text.literal("Abbrechen"), 200), Optional.empty());
-        showDialog(player, new MultiActionDialog(common, List.of(cancelButton, confirmButton), Optional.empty(), 2));
+        showDialog(player, new MultiActionDialog(common, List.of(cancelButton(), confirmButton), Optional.empty(), 2));
     }
 
     private static void showGuessDialog(ServerPlayerEntity player, Challenge challenge) {
         List<DialogInput> inputs = List.of(
                 new DialogInput("number", new TextInputControl(200, Text.literal("Deine Zahl"), true, "", 9, Optional.empty()))
         );
-        DialogCommonData common = new DialogCommonData(
-                Title(),
-                Optional.empty(),
-                true,
-                false,
-                AfterAction.CLOSE,
-                List.of(new PlainMessageDialogBody(RegularMessage(String.format("Wähle eine Zahl zwischen 1 und %s.\n%s", challenge.limit, challenge.challengeText)), 200)),
-                inputs
-        );
+        DialogCommonData common = commonData(String.format("Wähle eine Zahl zwischen 1 und %s.\n%s", challenge.limit, challenge.challengeText), inputs);
         showDialog(player, new NoticeDialog(common, actionButton("Zahl abschicken", "/odds guess $(number)")));
     }
 
@@ -332,13 +305,13 @@ public class WhatAreTheOdds implements ModInitializer {
                                             Challenge res = result.get();
                                             int intArgument = parsed.getAsInt();
                                             res.setLimit(intArgument);
-                                            res.sourcePlayer.sendMessage(Title());
-                                            res.sourcePlayer.sendMessage(RegularMessage(String.format("%s hat die Odds akzeptiert", res.targetPlayer.getName().getString())));
-                                            res.sourcePlayer.sendMessage(GuessPrompt(res.limit));
+                                            res.sourcePlayer.sendMessage(title());
+                                            res.sourcePlayer.sendMessage(regularMessage(String.format("%s hat die Odds akzeptiert", res.targetPlayer.getName().getString())));
+                                            res.sourcePlayer.sendMessage(guessPrompt(res.limit));
 
-                                            res.targetPlayer.sendMessage(Title());
-                                            res.targetPlayer.sendMessage(RegularMessage("Du hast die Odds akzeptiert"));
-                                            res.targetPlayer.sendMessage(GuessPrompt(intArgument));
+                                            res.targetPlayer.sendMessage(title());
+                                            res.targetPlayer.sendMessage(regularMessage("Du hast die Odds akzeptiert"));
+                                            res.targetPlayer.sendMessage(guessPrompt(intArgument));
 
                                             return 1;
                                         }))
@@ -401,46 +374,46 @@ public class WhatAreTheOdds implements ModInitializer {
         public void check() {
             if (this.sourcePlayerGuess.isPresent() && this.targetPlayerGuess.isPresent()) {
                 if (this.sourcePlayerGuess.getAsInt() == this.targetPlayerGuess.getAsInt()) {
-                    this.sourcePlayer.sendMessage(Title());
+                    this.sourcePlayer.sendMessage(title());
                     this.sourcePlayer.sendMessage(Text.literal(String.format("%s muss die Odds machen!", this.targetPlayer.getName().getString())).formatted(Formatting.GREEN));
-                    this.sourcePlayer.sendMessage(RegularMessage(String.format("\n%s", this.challengeText)));
+                    this.sourcePlayer.sendMessage(regularMessage(String.format("\n%s", this.challengeText)));
 
-                    this.targetPlayer.sendMessage(Title());
+                    this.targetPlayer.sendMessage(title());
                     this.targetPlayer.sendMessage(Text.literal("Du musst die Odds machen!").formatted(Formatting.RED));
-                    this.targetPlayer.sendMessage(RegularMessage(String.format("\n%s", this.challengeText)));
+                    this.targetPlayer.sendMessage(regularMessage(String.format("\n%s", this.challengeText)));
                     this.challengeActive = false;
 
                 } else if (this.sourcePlayerGuess.getAsInt() + this.targetPlayerGuess.getAsInt() == limit) {
-                    this.sourcePlayer.sendMessage(Title());
+                    this.sourcePlayer.sendMessage(title());
                     this.sourcePlayer.sendMessage(Text.literal("Beide müssen die Odds machen").formatted(Formatting.RED));
                     this.sourcePlayer.sendMessage(Text.literal(String.format("\n%s", this.challengeText)).formatted(Formatting.GRAY));
 
-                    this.targetPlayer.sendMessage(Title());
+                    this.targetPlayer.sendMessage(title());
                     this.targetPlayer.sendMessage(Text.literal("Beide müssen die Odds machen").formatted(Formatting.RED));
                     this.targetPlayer.sendMessage(Text.literal(String.format("\n%s", this.challengeText)).formatted(Formatting.GRAY));
                     this.challengeActive = false;
 
                 } else if ((this.sourcePlayerGuess.getAsInt() == 1 && this.targetPlayerGuess.getAsInt() == limit)
                         || (this.targetPlayerGuess.getAsInt() == 1 && this.sourcePlayerGuess.getAsInt() == limit)) {
-                    this.targetPlayer.sendMessage(Title());
+                    this.targetPlayer.sendMessage(title());
                     this.targetPlayer.sendMessage(Text.literal(String.format("%s muss die Odds machen!", this.sourcePlayer.getName().getString())).formatted(Formatting.GREEN));
-                    this.targetPlayer.sendMessage(RegularMessage(String.format("\n%s", this.challengeText)));
+                    this.targetPlayer.sendMessage(regularMessage(String.format("\n%s", this.challengeText)));
 
-                    this.sourcePlayer.sendMessage(Title());
+                    this.sourcePlayer.sendMessage(title());
                     this.sourcePlayer.sendMessage(Text.literal("Du hast die Odds verloren. Du musst die Odds machen!").formatted(Formatting.RED));
-                    this.sourcePlayer.sendMessage(RegularMessage(String.format("\n%s", this.challengeText)));
+                    this.sourcePlayer.sendMessage(regularMessage(String.format("\n%s", this.challengeText)));
                     this.challengeActive = false;
 
                 } else {
-                    this.sourcePlayer.sendMessage(Title());
+                    this.sourcePlayer.sendMessage(title());
                     this.sourcePlayer.sendMessage(Text.literal("Nichts passiert").formatted(Formatting.YELLOW));
-                    this.sourcePlayer.sendMessage(RegularMessage(String.format("\nDeine Odds waren: %s", this.sourcePlayerGuess.getAsInt())));
-                    this.sourcePlayer.sendMessage(RegularMessage(String.format("%s Odds waren: %s", this.targetPlayer.getName().getString(), this.targetPlayerGuess.getAsInt())));
+                    this.sourcePlayer.sendMessage(regularMessage(String.format("\nDeine Odds waren: %s", this.sourcePlayerGuess.getAsInt())));
+                    this.sourcePlayer.sendMessage(regularMessage(String.format("%s Odds waren: %s", this.targetPlayer.getName().getString(), this.targetPlayerGuess.getAsInt())));
 
-                    this.targetPlayer.sendMessage(Title());
+                    this.targetPlayer.sendMessage(title());
                     this.targetPlayer.sendMessage(Text.literal("Nichts passiert").formatted(Formatting.YELLOW));
-                    this.targetPlayer.sendMessage(RegularMessage(String.format("\nDeine Odds waren: %s", this.targetPlayerGuess.getAsInt())));
-                    this.targetPlayer.sendMessage(RegularMessage(String.format("%s Odds waren: %s", this.sourcePlayer.getName().getString(), this.sourcePlayerGuess.getAsInt())));
+                    this.targetPlayer.sendMessage(regularMessage(String.format("\nDeine Odds waren: %s", this.targetPlayerGuess.getAsInt())));
+                    this.targetPlayer.sendMessage(regularMessage(String.format("%s Odds waren: %s", this.sourcePlayer.getName().getString(), this.sourcePlayerGuess.getAsInt())));
                     this.challengeActive = false;
                 }
 
