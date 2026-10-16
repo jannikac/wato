@@ -19,6 +19,8 @@ game. The mod can be used client or server side.
 - `/odds respond <Number>` — accept a challenge and set the odds limit directly via command.
 - `/odds guess <Number>` — submit your secret number directly via command (equivalent to typing the number
   in chat).
+- `/odds cancel` — cancel a challenge you're currently part of (as challenger or opponent, accepted or not)
+  and notify the other player. Also happens automatically if either player disconnects.
 
 ## Installation
 

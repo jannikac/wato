@@ -4,6 +4,7 @@ import com.mojang.serialization.JavaOps;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.dialog.AfterAction;
@@ -95,6 +96,13 @@ public class WhatAreTheOdds implements ModInitializer {
             challenge.sourcePlayerGuess = OptionalInt.of(parsedInt);
             challenge.check();
         }
+    }
+
+    private static void cancelChallenge(Challenge challenge, ServerPlayerEntity canceller, String otherMessage) {
+        challenges.remove(challenge);
+        ServerPlayerEntity other = challenge.sourcePlayer == canceller ? challenge.targetPlayer : challenge.sourcePlayer;
+        other.sendMessage(title());
+        other.sendMessage(regularMessage(otherMessage));
     }
 
     private static OptionalInt parseLenientInt(String raw) {
@@ -201,7 +209,8 @@ public class WhatAreTheOdds implements ModInitializer {
                 new DialogInput("number", new TextInputControl(200, Text.literal("Deine Zahl"), true, "", 9, Optional.empty()))
         );
         DialogCommonData common = commonData(String.format("Wähle eine Zahl zwischen 1 und %s.\n%s", challenge.limit, challenge.challengeText), inputs);
-        showDialog(player, new NoticeDialog(common, actionButton("Zahl abschicken", "/odds guess $(number)")));
+        DialogActionButtonData confirmButton = actionButton("Zahl abschicken", "/odds guess $(number)");
+        showDialog(player, new MultiActionDialog(common, List.of(cancelButton(), confirmButton), Optional.empty(), 2));
     }
 
     private static void openOddsDialog(ServerPlayerEntity player, List<ServerPlayerEntity> onlinePlayers) {
@@ -258,6 +267,13 @@ public class WhatAreTheOdds implements ModInitializer {
 
             }
             return true;
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            ServerPlayerEntity player = handler.getPlayer();
+            challenges.stream()
+                    .filter(challenge -> challenge.sourcePlayer == player || challenge.targetPlayer == player)
+                    .findFirst()
+                    .ifPresent(challenge -> cancelChallenge(challenge, player, String.format("%s hat den Server verlassen. Die Herausforderung wurde abgebrochen.", player.getName().getString())));
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, dedicated, environment) ->
                 dispatcher.register(CommandManager.literal("odds")
@@ -343,6 +359,21 @@ public class WhatAreTheOdds implements ModInitializer {
                                     handleGuess(sender, result.get(), parsed.getAsInt());
                                     return 1;
                                 })))
+                        .then(CommandManager.literal("cancel").executes(context -> {
+                            ServerPlayerEntity sender = context.getSource().getPlayer();
+                            if (sender == null) {
+                                context.getSource().sendError(Text.literal("Dieser Befehl kann nur von Spielern verwendet werden"));
+                                return 0;
+                            }
+                            Optional<Challenge> result = challenges.stream().filter(challenge -> challenge.sourcePlayer == sender || challenge.targetPlayer == sender).findFirst();
+                            if (result.isEmpty()) {
+                                context.getSource().sendError(Text.literal("Du hast keine aktiven Odds"));
+                                return 0;
+                            }
+                            cancelChallenge(result.get(), sender, String.format("%s hat die Herausforderung abgebrochen.", sender.getName().getString()));
+                            sender.sendMessage(regularMessage("Du hast die Herausforderung abgebrochen."));
+                            return 1;
+                        }))
                 ));
 
         LOGGER.info("What are the odds? wurde erfolgreich geladen");
