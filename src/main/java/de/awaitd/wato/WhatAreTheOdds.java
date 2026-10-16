@@ -325,6 +325,10 @@ public class WhatAreTheOdds implements ModInitializer {
                                                 context.getSource().sendError(Text.literal("Du musst eine Zahl eingeben"));
                                                 return 0;
                                             }
+                                            if (parsed.getAsInt() < 2) {
+                                                context.getSource().sendError(Text.literal("Die Odds müssen mindestens 2 sein"));
+                                                return 0;
+                                            }
                                             Challenge res = result.get();
                                             int intArgument = parsed.getAsInt();
                                             res.setLimit(intArgument);
