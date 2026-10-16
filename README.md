@@ -13,8 +13,12 @@ game. The mod can be used client or server side.
 
 ### Usage
 
-- `/odds challenge <Player Name> <Message>`
-- `/odds respond <Number>`
+- `/odds` — opens an interactive dialog (via Minecraft's dialog UI) that walks you through challenging a
+  player, accepting a challenge, or submitting your guess, depending on your current state.
+- `/odds challenge <Player Name> <Message>` — challenge a player directly via command.
+- `/odds respond <Number>` — accept a challenge and set the odds limit directly via command.
+- `/odds guess <Number>` — submit your secret number directly via command (equivalent to typing the number
+  in chat).
 
 ## Installation
 
