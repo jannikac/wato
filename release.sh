@@ -5,15 +5,21 @@ set -euo pipefail
 # tags the commit to match exactly, and pushes both.
 #
 # Usage: ./release.sh <version>
-# Example: ./release.sh 1.1.2
-#   -> mod_version becomes 1.1.2+mc<current minecraft_version>, tagged the same way.
+# Example: ./release.sh v1.1.2
+#   -> mod_version becomes v1.1.2+mc<current minecraft_version>, tagged the same way.
+# Version must be in vX.X.X form; bare X.X.X (no leading "v") is rejected.
 
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <version>   e.g. $0 1.1.2" >&2
+    echo "Usage: $0 <vX.X.X>   e.g. $0 v1.1.2" >&2
     exit 1
 fi
 
 NEW_VERSION="$1"
+
+if ! [[ "$NEW_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Version must look like vX.X.X (e.g. v1.1.2), got: $NEW_VERSION" >&2
+    exit 1
+fi
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Working tree is not clean. Commit or stash changes before releasing." >&2
