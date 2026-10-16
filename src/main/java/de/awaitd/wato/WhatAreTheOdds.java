@@ -44,11 +44,10 @@ public class WhatAreTheOdds implements ModInitializer {
 
     // Class to represent a challenge
     private static void startChallenge(ServerPlayerEntity sourcePlayer, ServerPlayerEntity targetPlayer, String challengeText) {
-        Optional<Challenge> result = challenges.stream().filter(challenge -> challenge.targetPlayer == targetPlayer).findFirst();
-        // remove challenge from array if it already exists. each player can only have one challange
-        if (result.isPresent()) {
-            challenges.remove(result.get());
-        }
+        // each player can only have one incoming challenge; replacing an existing one notifies its challenger
+        challenges.stream().filter(challenge -> challenge.targetPlayer == targetPlayer).findFirst()
+                .ifPresent(oldChallenge -> cancelChallenge(oldChallenge, targetPlayer,
+                        String.format("%s wurde von einem anderen Spieler herausgefordert. Deine Herausforderung wurde abgebrochen.", targetPlayer.getName().getString())));
         Challenge challenge = new Challenge(sourcePlayer, targetPlayer, challengeText);
         challenges.add(challenge);
 
